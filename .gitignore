@@ -1,0 +1,137 @@
+#### Project-specific ####
+
+## Intentionally NOT ignored... ##
+#*.jar        # jar libraries are to be included
+#.classpath   # specifies classpaths used for the project (eclipse)
+#.project     # project metadata (eclipse)
+
+## Ignored... ##
+ARDroneControlTower/.settings
+ARDroneControlTower/.settings/*
+ARDroneControlTower/.settings/**   # eclipse settings
+ARDroneTracker/.settings
+ARDroneTracker/.settings/*
+ARDroneTracker/.settings/**   # eclipse settings
+.metadata
+.metadata/*
+.metadata/**              # eclipse settings
+
+#### Packages ####
+
+# Archives #
+*.7z
+*.rar
+*.zip
+*.gz
+*.bzip
+*.xz
+*.lzma
+
+# Packing #
+*.iso
+*.tar
+
+# Package Management #
+*.dmg
+*.xpi
+*.gem
+*.egg
+*.deb
+*.rpm
+
+
+#### Java ####
+
+*.class
+
+*.war
+*.ear
+
+
+#### C++ ####
+
+# Compiled Object files
+*.slo
+*.lo
+*.o
+
+# Compiled Dynamic libraries
+*.so
+
+# Compiled Static libraries
+*.lai
+*.la
+*.a
+
+
+#### XCode ####
+
+# xcode noise
+*.mode1v3
+*.pbxuser
+*.perspective 
+*.perspectivev3
+*.pyc 
+*~.nib/
+build/*
+
+
+#### XCode/Objective-C ####
+
+*.pbxuser
+!default.pbxuser
+*.modelv3
+!default.modelv3
+*.mode2v3
+!default.mode2v3
+*.perspectivev3
+!default.perspectivev3
+*.xcworkspace
+!default.xcworkspace
+xcuserdata
+profile
+*.moved-aside
+
+
+#### OS X ####
+
+*.DS_Store
+.DS_Store
+.DS_Store*
+ehthumbs.db
+Icon?
+Thumbs.db
+._*
+.Spotlight-V100
+.Trashes
+
+
+#### Python-Django ####
+
+*.log
+*.pot
+*.pyc
+settings.py
+
+
+#### Python ####
+
+*.py[co]
+
+# Packages
+*.egg
+*.egg-info
+.installed.cfg
+
+# Installer logs
+pip-log.txt
+
+# Unit test / coverage reports
+.coverage
+.tox
+
+#Translations
+*.mo
+
+#Mr Developer
+.mr.developer.cfg
