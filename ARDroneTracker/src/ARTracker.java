@@ -153,7 +153,7 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
             {
             	while(running.get())  // "running" indicates ARDrone is running. while "running" the drone may move from "flying" or not 
                 {
-            		System.out.println( "A1 -- just after running.get()   "+ getAngularSpeed() );
+            		System.out.println( "A1 -- just after running.get() |  angular speed:  "+ getAngularSpeed() + "    |    vertical speed " + getVerticalSpeed() );
             		
             		//
             		// Process land/takeoff actions
@@ -196,8 +196,8 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
             			
                         float left_right_tilt = 0f;
                         float front_back_tilt = 0f;
-                        float vertical_speed = 0f;
                         
+                        float vertical_speed = getVerticalSpeed();
                         float angular_speed = getAngularSpeed();
                         
                         // if any movement parameters non-zero, then do movement
@@ -438,14 +438,39 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     
     
     
-    // DRONE CONTROL
+    // DRONE CONTROL PARAMS
+    private float getVerticalSpeed()
+    {
+    	double MAX = 240;
+    	double MIDDLE = MAX/2;
+    	
+    	double targetY = processedVideoStreamPanel.getTargetY();
+    	double delta = targetY - MIDDLE;
+    	
+    	float speed = (float)(delta / MIDDLE);
+    	speed = speed*1.0f;
+    	
+    	float MAX_SPEED = 0.1f;
+    	if( speed > MAX_SPEED )
+    		speed = MAX_SPEED;
+    	
+    	if( speed < -MAX_SPEED )
+    		speed = -MAX_SPEED;
+    	
+    	// positive vertical speed = rise
+    	// negative vertical speed = descend
+    	
+    	speed = -speed;  // flip 
+    	return speed;
+    }
+    
     private float getAngularSpeed()
     {
     	double targetX = processedVideoStreamPanel.getTargetX();
     	double delta = targetX - 160;
     	
     	float speed = (float)(delta / 160);
-    	speed = speed*1.5;
+    	speed = speed*1.5f;
     	
     	if( speed > 1 )
     		speed = 1;
@@ -454,24 +479,6 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     		speed = -1;
     	
     	return speed;
-    	
-    	
-    	/*
-    	double hitBoxWidth = 120f;
-    	float stepSpeed = 0.99f;
-    	
-    	
-    	double targetX = processedVideoStreamPanel.getTargetX();
-    	if( targetX < hitBoxWidth )
-    		// negative angular means spin left
-    		return -stepSpeed;
-    	
-    	if( targetX > (320-hitBoxWidth) )
-    		// positive angular means spin right
-    		return stepSpeed;
-    	
-    	return 0.0f;
-    	*/
     }
 }
 

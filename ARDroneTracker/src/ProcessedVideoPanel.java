@@ -145,7 +145,7 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     	return tgt_x; 
     }
 	
-	public double getTargety()
+	public double getTargetY()
     {
     	return tgt_y; 
     }
