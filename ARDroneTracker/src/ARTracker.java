@@ -54,12 +54,15 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     private final AtomicBoolean running = new AtomicBoolean(false);
     private final AtomicBoolean flying = new AtomicBoolean(false);
     
+    // Drone control
+    private String nextAction = "";
+    
     // ARDrone stuff
     private ARDrone drone;
     private final VideoPanel droneVideoStreamPanel = new VideoPanel();
     private final ProcessedVideoPanel processedVideoStreamPanel = new ProcessedVideoPanel();
     private final DroneConfig droneConfigWindow;
-
+    
     /**
      * Creates new form ControlTower
      */
@@ -79,6 +82,11 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     	return drone;
     }
 
+    public void setNextAction( String nextAction )
+    {
+    	this.nextAction = nextAction;
+    }
+    
     private void initDrone()
     {
         try
@@ -108,7 +116,8 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
         resetStatus();
         try
         {
-
+        	
+        	// BEGIN: drone status change listener
             drone.addStatusChangeListener(new DroneStatusChangeListener()
             {
 
@@ -129,23 +138,93 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
                     }
                 }
             });
-
+            // END: drone status change listener
+            
             System.err.println("Connecting to the drone");
             drone.connect();
             drone.waitForReady(CONNECT_TIMEOUT);
             drone.clearEmergencySignal();
             System.err.println("Connected to the drone");
             
-            /* 
-            try
+            
+            /* STUFF CULLED HERE */
+            // MAIN EVENT LOOP?
+            try 
             {
-            	// block delete
+            	while(running.get())  // "running" indicates ARDrone is running. while "running" the drone may move from "flying" or not 
+                {
+            		System.out.println( "A1 -- just after running.get()   "+ getAngularSpeed() );
+            		
+            		//
+            		// Process land/takeoff actions
+            		try
+            		{
+	            		if( nextAction.equals("LAND") ) {
+	            			if( flying.get() )
+	            			{
+	            				drone.land();
+	            				nextAction = "";
+	            			}
+	            			else
+	            			{
+	            				Logger.getLogger(getClass().getName()).error("will not land because already flying");
+	            			}
+	            		}
+	            		
+	            		if( nextAction.equals("TAKEOFF") ) {
+	            			if( !flying.get() )
+	            			{
+	            				drone.takeOff();
+	            				nextAction = "";
+	            			}
+	            			else
+	            			{
+	            				Logger.getLogger(getClass().getName()).error("will not take off because already flying");
+	            			}
+	            		}
+            		}
+	            	catch( IOException ex )
+	            	{
+	            		System.err.println( "Problem with drone.takeOff or drone.land" );
+	            	}
+            		
+            		//
+            		// Do some stuff while flying (e.g., re-orientation/movement stuff)
+            		if( flying.get() )
+            		{
+            			System.out.println( "A2 -- just after flying.get()" );
+            			
+                        float left_right_tilt = 0f;
+                        float front_back_tilt = 0f;
+                        float vertical_speed = 0f;
+                        
+                        float angular_speed = getAngularSpeed();
+                        
+                        // if any movement parameters non-zero, then do movement
+                        if(left_right_tilt != 0 || front_back_tilt != 0 || vertical_speed != 0 || angular_speed != 0)
+                        {
+                        	drone.move(left_right_tilt, front_back_tilt, vertical_speed, angular_speed);
+                        }
+            			else
+            			{
+            				drone.hover();
+            			}
+            		}
+            		
+            		//
+            		// End of event loop -- sleep for a bit
+            		try
+                    {
+                        Thread.sleep(READ_UPDATE_DELAY_MS);
+                    }
+                    catch(InterruptedException e) {}
+                
+                } // end whole loop
             }
             finally
             {
                 drone.disconnect();
             }
-            */
         }
         catch(Throwable e)
         {
@@ -356,6 +435,44 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     private javax.swing.JLabel droneStatus;
     private javax.swing.JPanel videoPanel;
     // End of variables declaration//GEN-END:variables
+    
+    
+    
+    // DRONE CONTROL
+    private float getAngularSpeed()
+    {
+    	double targetX = processedVideoStreamPanel.getTargetX();
+    	double delta = targetX - 160;
+    	
+    	float speed = (float)(delta / 160);
+    	speed = speed*1.5;
+    	
+    	if( speed > 1 )
+    		speed = 1;
+    	
+    	if( speed < -1 )
+    		speed = -1;
+    	
+    	return speed;
+    	
+    	
+    	/*
+    	double hitBoxWidth = 120f;
+    	float stepSpeed = 0.99f;
+    	
+    	
+    	double targetX = processedVideoStreamPanel.getTargetX();
+    	if( targetX < hitBoxWidth )
+    		// negative angular means spin left
+    		return -stepSpeed;
+    	
+    	if( targetX > (320-hitBoxWidth) )
+    		// positive angular means spin right
+    		return stepSpeed;
+    	
+    	return 0.0f;
+    	*/
+    }
 }
 
 class LandAction extends AbstractAction
@@ -370,17 +487,9 @@ class LandAction extends AbstractAction
 	
 	public void actionPerformed( ActionEvent evt )
 	{
-		try
-		{
-			Logger.getLogger(AssignableControl.class.getName()).debug("Sending land");
-			System.out.println( "LAND" );
-	        art.getARDrone().land();
-		}
-		catch( IOException ex ) 
-		{
-			Logger.getLogger(AssignableControl.class.getName()).debug("Land action failed!");
-			System.err.println( "LAND FAILURE: " + ex );
-		}
+		Logger.getLogger(AssignableControl.class.getName()).debug("Sending land");
+		System.out.println( "LAND" );
+		art.setNextAction( "LAND" );
 	}
 }
 
@@ -396,17 +505,9 @@ class TakeOffAction extends AbstractAction
 	
 	public void actionPerformed( ActionEvent evt )
 	{
-		try
-		{
-			Logger.getLogger(AssignableControl.class.getName()).debug("Sending takeoff");
-			System.out.println( "TAKEOFF" );
-	        art.getARDrone().takeOff();
-		}
-		catch( IOException ex ) 
-		{
-			Logger.getLogger(AssignableControl.class.getName()).debug("Takeoff action failed!");
-			System.err.println( "TAKEOFF FAILURE: " + ex );
-		}
+		Logger.getLogger(AssignableControl.class.getName()).debug("Sending takeoff");
+		System.out.println( "TAKEOFF" );
+        art.setNextAction( "TAKEOFF" );
 	}
 }
 
