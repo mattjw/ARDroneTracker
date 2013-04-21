@@ -154,9 +154,9 @@ class DroneTracker {
                 processedImage.setRGB(i, j, cc);
             }
         }
-        Graphics2D g = img.createGraphics();
-        g.setColor(Color.WHITE);
-        g.fillOval(Math.floor(tgt_x), Math.floor(tgt_y), round(tgt_r), round(tgt_r));
+        // Graphics2D g = processedImage.createGraphics();
+        // g.setColor(Color.WHITE);
+        // g.fillOval(Math.floor(tgt_x), Math.floor(tgt_y), Math.round(tgt_r), Math.round(tgt_r));
 
     }
 
