@@ -22,14 +22,15 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author normenhansen
  */
 @SuppressWarnings("serial")
-public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVideoListener
+public class VideoPanel extends javax.swing.JPanel implements DroneVideoListener
 {
+
     private AtomicReference<BufferedImage> image          = new AtomicReference<BufferedImage>();
     private AtomicBoolean                  preserveAspect = new AtomicBoolean(true);
     private BufferedImage                  noConnection   = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
 
     /** Creates new form VideoPanel */
-    public ProcessedVideoPanel()
+    public VideoPanel()
     {
         initComponents();
         Graphics2D g2d = (Graphics2D) noConnection.getGraphics();
@@ -49,6 +50,14 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         preserveAspect.set(preserve);
     }
 
+    @Override
+    public void frameReceived(int startX, int startY, int w, int h, int[] rgbArray, int offset, int scansize)
+    {
+        BufferedImage im = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);
+        im.setRGB(startX, startY, w, h, rgbArray, offset, scansize);
+        image.set(im);
+        repaint();
+    }
 
     @Override
     public void paintComponent(Graphics g)
@@ -109,118 +118,4 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     }// </editor-fold>//GEN-END:initComponents
      // Variables declaration - do not modify//GEN-BEGIN:variables
      // End of variables declaration//GEN-END:variables
-    
-    
-    
-    
-    
-    
-    
-    ///////////////////////////////////////
-    //////////// EDIT WITH KAS ////////////
-    ///////////////////////////////////////
-    
-    
-    
-	private static String imgpath = "./data";
-	private static double mnr = 115;
-	private static double mng = 49;
-	private static double mnb = 75;
-	private static double str = 4;
-	private static double stg = 7;
-	private static double stb = 5;
-	private static double slack = 4.0;
-	
-	// Results
-	private static double tgt_x;
-	private static double tgt_y;
-	private static BufferedImage processedImage;
-	private static boolean success;
-	
-	private static int count = 0;
-	
-	
-	public double getTargetX()
-    {
-    	return tgt_x; 
-    }
-	
-	public double getTargetY()
-    {
-    	return tgt_y; 
-    }
-	
-	private static boolean isPixelTarget(int r, int g, int b) {
-	    // System.out.format("%d %d %d\n", r, g, b);
-	    if (r < (mnr - str * slack)) return false;
-	    if (r > (mnr + str * slack)) return false;
-	    if (g < (mng - stg * slack)) return false;
-	    if (g > (mng + stg * slack)) return false;
-	    if (b < (mnb - stb * slack)) return false;
-	    if (b > (mnb + stb * slack)) return false;
-	    return true;
-	}
-	
-	private static void processImage(BufferedImage image) {
-	    int height = image.getHeight();
-	    int width = image.getWidth();
-	    processedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-	    // double tgt_x = 0.0;
-	    // double tgt_y = 0.0;
-	    count = 0;
-	    for (int j = 0; j < height; ++j) {
-	        for (int i = 0; i < width; ++i) {
-	            Color col = new Color(image.getRGB(i, j));
-	            int r = col.getRed();
-	            int g = col.getGreen();
-	            int b = col.getBlue();
-	
-	            if (isPixelTarget(r, g, b)) {
-	                tgt_x += i;
-	                tgt_y += j;
-	                ++count;
-	                processedImage.setRGB(i, j, Color.green.getRGB());
-	            }
-	            else {
-	                processedImage.setRGB(i, j, col.getRGB());
-	                // processedImage.setRGB(i, j, col.getRGB());
-	            }
-	
-	        }
-	    }
-	
-	    if (count > 0) {
-	        tgt_x /= (double)count;
-	        tgt_y /= (double)count;
-	        success = true;
-	    } else {
-	        success = false;
-	    }
-	}
-	
-	@Override
-    public void frameReceived(int startX, int startY, int w, int h, int[] rgbArray, int offset, int scansize)
-    {
-		/*
-		StringBuffer sb = new StringBuffer();
-		sb.append("startX " + startX + "  | " );
-		sb.append("startY " + startY + "  | " );
-		sb.append("w " + w + "  | " );
-		sb.append("h " + h + "  | " );
-		sb.append("offset " + offset + "  | " );
-		sb.append("scansize " + scansize + "  | " );
-		System.out.println( sb );
-		*/
-		
-        BufferedImage im = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);  // create blank frame
-        im.setRGB(startX, startY, w, h, rgbArray, offset, scansize);  // copy pixels across 
-
-        processImage( im );
-        
-        //im.setRGB(startX, startY, w, h, rgbArray, offset, scansize);
-        image.set( processedImage );
-        repaint();
-        
-        //System.out.printf( "TARGET: (%s,%s)\n", tgt_x, tgt_y );
-    }
 }
