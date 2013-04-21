@@ -141,20 +141,54 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
             drone.clearEmergencySignal();
             System.err.println("Connected to the drone");
             
+            //
+            // Prep controllers
+            double dt = 0.001; // some measure of time between two frames
             
-            /* STUFF CULLED HERE */
-            // MAIN EVENT LOOP?
+            double angspdKp = 1.0 / 160.0;  // up to 160 pixels left, up to 160 
+            double angspdKi = 0.0005 * dt;  // keep this small; close to zero 
+            double angspdKd = 0; // 0.1 / dt;
+            pidAngularSpeed = new PIDController( angspdKp, angspdKi, angspdKd,   1.0    );
+            
+            double frobaKp = 1.0 / 160.0;  // up to 160 pixels left, up to 160 
+            double frobaKi = 0.000000001 * dt;  // keep this small; close to zero 
+            double frobaKd = 0; // 0.1 / dt;
+            pidFrontBackTilt = new PIDController( frobaKp, frobaKi, frobaKd,   0.12    );
+            
+            //pidFrontBackTilt = new PIDController(   1.0, 0.1, 0,   1.0    ); 
+            
+            
+            // MAIN EVENT LOOP
             try 
             {
             	while(running.get())  // "running" indicates ARDrone is running. while "running" the drone may move from "flying" or not 
                 {
+            		//
+            		// Update control
+            		// first thing to do: handle control params
+            		// note: of there are any PIDs here, this WILL cause them to update their states
+            		float left_right_tilt = 0f;
+                    float front_back_tilt = 0f;
+                    float vertical_speed = 0f;
+                    float angular_speed = 0f;
+                    
+                    if( processedVideoStreamPanel.isTargetFound() )
+                    {
+                    	left_right_tilt = 0f;
+                        front_back_tilt = getFrontBackTilt();
+                        vertical_speed = getVerticalSpeed();
+                        angular_speed = getAngularSpeed();
+                    }
+                    
+                    //
+                    // Print out debug info
             		if( debugLabel != null )
             		{
             			String msg = "";
             			msg += "running.get()\n";
-            			msg += String.format( "angular speed:  %.3f \n", getAngularSpeed() );
-            			msg += String.format( "vertical speed: %.3f \n", getVerticalSpeed() );
-            			msg += String.format( "f/b tilt:       %.3f \n", getFrontBackTilt() );
+            			msg += String.format( "angular speed:  %.3f \n", angular_speed );
+            			msg += String.format( "vertical speed: %.3f \n", vertical_speed );
+            			msg += String.format( "f/b tilt:       %.3f \n", front_back_tilt );
             			msg += String.format( "target:         %.3f, %.3f \n", processedVideoStreamPanel.getTargetX(), processedVideoStreamPanel.getTargetY() );
             			msg += String.format( "targ extent:    %.3f \n", processedVideoStreamPanel.getTargetExtent() );
             			msg += String.format( "targ is found:  %s \n", processedVideoStreamPanel.isTargetFound() );
@@ -205,12 +239,6 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
             			}
             			else
             			{
-	                        float left_right_tilt = 0f;
-	                        
-	                        float front_back_tilt = getFrontBackTilt();
-	                        float vertical_speed = getVerticalSpeed();
-	                        float angular_speed = getAngularSpeed();
-	                        
 	                        if(left_right_tilt != 0 || front_back_tilt != 0 || vertical_speed != 0 || angular_speed != 0)
 	                        {
 	                        	// if any movement parameters non-zero, then do movement
@@ -471,6 +499,9 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     // DRONE CONTROL
     //
     
+    private PIDController pidAngularSpeed;
+    private PIDController pidFrontBackTilt;
+    
     private float getVerticalSpeed()
     {
     	double MAX = 240;
@@ -499,6 +530,24 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     private float getAngularSpeed()
     {
     	double targetX = processedVideoStreamPanel.getTargetX();
+    	double actualDelta = targetX - 160;
+    	
+    	// error = the delta between center of screen and target x position
+    	// target error = 0
+    	double targetDelta = 0;
+    	
+    	double control = pidAngularSpeed.control( actualDelta, targetDelta, 0 );
+    	
+    	
+    	//System.out.println( "act delta: " + actualDelta );
+    	//System.out.println( "act control: " + control );
+    	
+    	return (float)control;
+    	
+    	// negative return => negative angular speed => a negative value makes it spin left
+    	
+    	/*
+    	double targetX = processedVideoStreamPanel.getTargetX();
     	double delta = targetX - 160;
     	
     	float speed = (float)(delta / 160);
@@ -511,10 +560,17 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     		speed = -1;
     	
     	return speed;
+    	*/
     }
     
     private float getFrontBackTilt()
     {
+    	double actualExtent = processedVideoStreamPanel.getTargetExtent();
+    	double targetExtent = 100;
+    	double control = pidFrontBackTilt.control( actualExtent, targetExtent, 0 );
+    	control = control;
+    	return (float)control;
+    	/*
     	// return value (understanding front back tilt...):
     	// A negative value makes the drone lower its nose, thus flying frontward.
     	// A positive value makes the drone raise its nose, thus flying backward. 
@@ -539,6 +595,7 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     	}
     	
     	return 0f;
+    	*/
     }
 }
 
