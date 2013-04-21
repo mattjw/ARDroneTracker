@@ -42,6 +42,65 @@ class DroneTracker {
 
     }
 
+    public static double[] HSVtoRGB(final double h, final double s, final double v) {
+        // H is given on [0->6] or -1. S and V are given on [0->1].
+        // RGB are each returned on [0->1].
+        double m, n, f;
+        int i;
+
+        final double[] hsv = new double[3];
+        final double[] rgb = new double[3];
+
+        hsv[0] = h / 6.0;
+        hsv[1] = s;
+        hsv[2] = v;
+
+        if (hsv[0] == -1) {
+            rgb[0] = rgb[1] = rgb[2] = hsv[2];
+            return rgb;
+        }
+        i = (int) (Math.floor(hsv[0]));
+        f = hsv[0] - i;
+        if (i % 2 == 0)
+            f = 1 - f; // if i is even
+        m = hsv[2] * (1 - hsv[1]);
+        n = hsv[2] * (1 - hsv[1] * f);
+        switch (i) {
+        case 6:
+        case 0:
+            rgb[0] = hsv[2];
+            rgb[1] = n;
+            rgb[2] = m;
+            break;
+        case 1:
+            rgb[0] = n;
+            rgb[1] = hsv[2];
+            rgb[2] = m;
+            break;
+        case 2:
+            rgb[0] = m;
+            rgb[1] = hsv[2];
+            rgb[2] = n;
+            break;
+        case 3:
+            rgb[0] = m;
+            rgb[1] = n;
+            rgb[2] = hsv[2];
+            break;
+        case 4:
+            rgb[0] = n;
+            rgb[1] = m;
+            rgb[2] = hsv[2];
+            break;
+        case 5:
+            rgb[0] = hsv[2];
+            rgb[1] = m;
+            rgb[2] = n;
+            break;
+        }
+
+        return rgb;
+    }
     private static double sq(double x) {
         return x * x;
     }
@@ -94,12 +153,12 @@ class DroneTracker {
 
     private static void convolve() {
         double[][] mask = new double[CONV_R*2+1][CONV_R*2+1];
-                int count = 0;
+        int c = 0;
         for (int dj = -CONV_R; dj <= CONV_R; ++dj) {
             for (int di = -CONV_R; di <= CONV_R; ++di) {
                 if (Math.sqrt(sq((double)dj) + sq((double)di)) <= CONV_R) {
                     mask[dj + CONV_R][di + CONV_R] = 1.0;
-					++count;
+                    ++c;
                 }
             }
         }
@@ -113,12 +172,14 @@ class DroneTracker {
                         int ii = Math.max(0, Math.min(WIDTH - 1, i + di));
                         int jj = Math.max(0, Math.min(HEIGHT - 1, j + dj));
                         // if (Math.sqrt(sq((double)dj) + sq((double)di)) <= CONV_R) {
-                            sum += mask[dj + CONV_R][di + CONV_R] * buf[jj][ii];
-                            // ++count;
+                        sum += mask[dj + CONV_R][di + CONV_R] * buf[jj][ii];
+                        // ++count;
                         // }
                     }
                 }
-                conv[j][i] = sum / (double)count;
+				
+                conv[j][i] = sum / (double)c;
+				
                 if (conv[j][i] < CONV_THR) {
                     conv[j][i] = 0.0;
                 }
@@ -146,6 +207,42 @@ class DroneTracker {
         success = (tgt_r < 4);
     }
 
+    private static void visualise(BufferedImage image) {
+
+        processedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+
+		double maxconv = 0.0;
+		        for (int j = 0; j < HEIGHT; ++j) {
+					for (int i = 0; i < WIDTH; ++i) {
+						maxconv = Math.max(maxconv, conv[j][i]);
+					}
+				}
+        for (int j = 0; j < HEIGHT; ++j) {
+            for (int i = 0; i < WIDTH; ++i) {
+                Color col = new Color(image.getRGB(i, j));
+                double r = col.getRed()   / 255.0;
+                double g = col.getGreen() / 255.0;
+                double b = col.getBlue()  / 255.0;
+                double gray = Math.min(1.0, 0.21 * r + 0.71 * g + 0.07 * b);
+                // double[] rgb = HSVtoRGB(conv[j][i] / maxconv, 1.0, gray);
+				// r = rgb[2] * 255.0;
+				// g = rgb[1] * 255.0;
+				// b = rgb[0] * 255.0;
+
+				double val = conv[j][i] / maxconv;
+				// r = 0;//gray * 255;// * val * 255.0;
+				// g = gray;// * 0.5;
+				// b = gray;// * (1.0 - val) * 255.0;
+				// // col = new Color((float)r, (float)g, (float)b);
+				int cc = Color.HSBtoRGB((float)val, (float)1, (float)gray);
+                // int pixel = ((byte)r << 16) | ((byte)g << 8) | (byte)b;
+				processedImage.setRGB(i, j, cc);
+            }
+        }
+        // getImageFromArray(conv, WIDTH, HEIGHT);
+
+    }
+
     private static void processImage(BufferedImage image) {
         clearBuffer();
         int height = image.getHeight();
@@ -156,8 +253,9 @@ class DroneTracker {
         computeDifference();
         convolve();
         findTarget();
+        visualise(image);
 
-        processedImage = getImageFromArray(conv, WIDTH, HEIGHT);
+
 
 
 
