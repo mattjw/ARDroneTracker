@@ -128,7 +128,7 @@ class DroneTracker {
         tgt_y /= tconv;
 
 
-        tgt_r = Math.max(1, 4 * Math.sqrt(tconv));
+        tgt_r = Math.max(1, 2 * Math.sqrt(tconv));
         success = (tgt_r < 4);
     }
 
@@ -154,9 +154,9 @@ class DroneTracker {
                 processedImage.setRGB(i, j, cc);
             }
         }
-        // Graphics2D g = processedImage.createGraphics();
-        // g.setColor(Color.WHITE);
-        // g.fillOval(Math.floor(tgt_x), Math.floor(tgt_y), Math.round(tgt_r), Math.round(tgt_r));
+        Graphics2D g = processedImage.createGraphics();
+        g.setColor(Color.WHITE);
+        g.drawOval((int)Math.floor(tgt_x - tgt_r/2), (int)Math.floor(tgt_y - tgt_r/2), (int)Math.round(tgt_r), (int)Math.round(tgt_r));
 
     }
 
