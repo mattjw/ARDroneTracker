@@ -223,4 +223,9 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         
         //System.out.printf( "TARGET: (%s,%s)\n", tgt_x, tgt_y );
     }
+	
+	public boolean isTargetFound()
+	{
+		return true;
+	}
 }

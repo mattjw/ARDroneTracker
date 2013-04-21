@@ -195,23 +195,29 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
             		//
             		// Do some stuff while flying (e.g., re-orientation/movement stuff)
             		if( flying.get() )
-            		{
-            			System.out.println( "A2 -- just after flying.get()" );
-            			
-                        float left_right_tilt = 0f;
-                        
-                        float front_back_tilt = getFrontBackTilt();
-                        float vertical_speed = getVerticalSpeed();
-                        float angular_speed = getAngularSpeed();
-                        
-                        // if any movement parameters non-zero, then do movement
-                        if(left_right_tilt != 0 || front_back_tilt != 0 || vertical_speed != 0 || angular_speed != 0)
-                        {
-                        	drone.move(left_right_tilt, front_back_tilt, vertical_speed, angular_speed);
-                        }
+            		{	
+            			if( !processedVideoStreamPanel.isTargetFound() )
+            			{
+            				// if unsure of target's location, don't do anything
+            				drone.hover();
+            			}
             			else
             			{
-            				drone.hover();
+	                        float left_right_tilt = 0f;
+	                        
+	                        float front_back_tilt = getFrontBackTilt();
+	                        float vertical_speed = getVerticalSpeed();
+	                        float angular_speed = getAngularSpeed();
+	                        
+	                        if(left_right_tilt != 0 || front_back_tilt != 0 || vertical_speed != 0 || angular_speed != 0)
+	                        {
+	                        	// if any movement parameters non-zero, then do movement
+	                        	drone.move(left_right_tilt, front_back_tilt, vertical_speed, angular_speed);
+	                        }
+	            			else
+	            			{
+	            				drone.hover();
+	            			}
             			}
             		}
             		
