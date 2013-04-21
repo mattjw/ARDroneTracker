@@ -150,10 +150,14 @@ class DroneTracker {
                 double b = col.getBlue()  / 255.0;
                 double gray = Math.min(1.0, 0.21 * r + 0.71 * g + 0.07 * b);
                 double val = conv[j][i] / maxconv;
-                int cc = Color.HSBtoRGB((float)val, (float)1, (float)gray);
+                int cc = Color.HSBtoRGB((float)val, (float)val, (float)gray);
                 processedImage.setRGB(i, j, cc);
             }
         }
+        Graphics2D g = img.createGraphics();
+        g.setColor(Color.WHITE);
+        g.fillOval(Math.floor(tgt_x), Math.floor(tgt_y), round(tgt_r), round(tgt_r));
+
     }
 
     private static void processImage(BufferedImage image) {
