@@ -155,7 +155,9 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
             			msg += String.format( "angular speed:  %.3f \n", getAngularSpeed() );
             			msg += String.format( "vertical speed: %.3f \n", getVerticalSpeed() );
             			msg += String.format( "f/b tilt:       %.3f \n", getFrontBackTilt() );
-            			msg += String.format( "target:         %.3f, %.3f ", processedVideoStreamPanel.getTargetX(), processedVideoStreamPanel.getTargetY() );
+            			msg += String.format( "target:         %.3f, %.3f \n", processedVideoStreamPanel.getTargetX(), processedVideoStreamPanel.getTargetY() );
+            			msg += String.format( "targ extent:    %.3f \n", processedVideoStreamPanel.getTargetExtent() );
+            			msg += String.format( "targ is found:  %s \n", processedVideoStreamPanel.isTargetFound() );
             			debugLabel.setText( msg );
             		}
             		
@@ -513,6 +515,29 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     
     private float getFrontBackTilt()
     {
+    	// return value (understanding front back tilt...):
+    	// A negative value makes the drone lower its nose, thus flying frontward.
+    	// A positive value makes the drone raise its nose, thus flying backward. 
+    	
+    	double actualExtent = processedVideoStreamPanel.getTargetExtent();
+    	float stepVal = 0.10f;  // 0.05 -> too low
+    	
+    	if( actualExtent > 120 )
+    	{
+    		// extent too large
+    		// object too big
+    		// need to move drone further away
+    		return stepVal;  // positive means drone flies backwards
+    	}
+    	
+    	if( actualExtent < 80 )
+    	{
+    		// extent too small
+    		// object too far away
+    		// need to bring done closer
+    		return -stepVal;  // A negative value makes the drone lower its nose, thus flying frontward.
+    	}
+    	
     	return 0f;
     }
 }

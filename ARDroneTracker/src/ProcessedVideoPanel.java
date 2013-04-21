@@ -24,8 +24,8 @@ import java.util.concurrent.atomic.AtomicReference;
 @SuppressWarnings("serial")
 public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVideoListener
 {
-    private AtomicReference<BufferedImage> image          = new AtomicReference<BufferedImage>();
-    private AtomicBoolean                  preserveAspect = new AtomicBoolean(true);
+    private AtomicReference<BufferedImage> atomImage          = new AtomicReference<BufferedImage>();  // used for output when displaying the video stream. this variable is the frame that'll be displayed 
+    private AtomicBoolean                  preserveAspect = new AtomicBoolean(true);  
     private BufferedImage                  noConnection   = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
 
     /** Creates new form VideoPanel */
@@ -36,7 +36,7 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         Font f = g2d.getFont().deriveFont(24.0f);
         g2d.setFont(f);
         g2d.drawString("No video connection", 40, 110);
-        image.set(noConnection);
+        atomImage.set(noConnection);
     }
 
     public void setDrone(ARDrone drone)
@@ -63,7 +63,7 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
 
     private void drawDroneImage(Graphics2D g2d, int width, int height)
     {
-        BufferedImage im = image.get();
+        BufferedImage im = atomImage.get();
         if(im == null)
         {
             return;
@@ -112,33 +112,20 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     
     
     
-    
-    
-    
-    
-    ///////////////////////////////////////
-    //////////// EDIT WITH KAS ////////////
-    ///////////////////////////////////////
-    
-    
-    
-	private static String imgpath = "./data";
-	private static double mnr = 115;
-	private static double mng = 49;
-	private static double mnb = 75;
-	private static double str = 4;
-	private static double stg = 7;
-	private static double stb = 5;
-	private static double slack = 4.0;
+    ////////////////////////////////////////
+    //////////// WRAPPED ON KAS ////////////
+    ////////////////////////////////////////
 	
-	// Results
-	private static double tgt_x;
-	private static double tgt_y;
-	private static BufferedImage processedImage;
-	private static boolean success;
-	
-	private static int count = 0;
-	
+    
+    private int frameCount = 0;
+    private int nFrameSkip = 4;  
+      // frameReceived will NOT do processing unless frameCount==0;
+      // nFrameSkip: skip `nFrameSkip` frames before re-processing
+    
+	public boolean isTargetFound()
+	{
+		return success;
+	}
 	
 	public double getTargetX()
     {
@@ -149,83 +136,200 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     {
     	return tgt_y; 
     }
-	
-	private static boolean isPixelTarget(int r, int g, int b) {
-	    // System.out.format("%d %d %d\n", r, g, b);
-	    if (r < (mnr - str * slack)) return false;
-	    if (r > (mnr + str * slack)) return false;
-	    if (g < (mng - stg * slack)) return false;
-	    if (g > (mng + stg * slack)) return false;
-	    if (b < (mnb - stb * slack)) return false;
-	    if (b > (mnb + stb * slack)) return false;
-	    return true;
-	}
-	
-	private static void processImage(BufferedImage image) {
-	    int height = image.getHeight();
-	    int width = image.getWidth();
-	    processedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
-	    // double tgt_x = 0.0;
-	    // double tgt_y = 0.0;
-	    count = 0;
-	    for (int j = 0; j < height; ++j) {
-	        for (int i = 0; i < width; ++i) {
-	            Color col = new Color(image.getRGB(i, j));
-	            int r = col.getRed();
-	            int g = col.getGreen();
-	            int b = col.getBlue();
-	
-	            if (isPixelTarget(r, g, b)) {
-	                tgt_x += i;
-	                tgt_y += j;
-	                ++count;
-	                processedImage.setRGB(i, j, Color.green.getRGB());
-	            }
-	            else {
-	                processedImage.setRGB(i, j, col.getRGB());
-	                // processedImage.setRGB(i, j, col.getRGB());
-	            }
-	
-	        }
-	    }
-	
-	    if (count > 0) {
-	        tgt_x /= (double)count;
-	        tgt_y /= (double)count;
-	        success = true;
-	    } else {
-	        success = false;
-	    }
+    
+	public double getTargetExtent()
+	{
+		// Some sort of measure of the size of the target
+		// perhaps radius, perhaps diameter, perhaps something else.
+		// In mother Russia, circle measures you.
+		return tgt_r;
 	}
 	
 	@Override
     public void frameReceived(int startX, int startY, int w, int h, int[] rgbArray, int offset, int scansize)
     {
-		/*
-		StringBuffer sb = new StringBuffer();
-		sb.append("startX " + startX + "  | " );
-		sb.append("startY " + startY + "  | " );
-		sb.append("w " + w + "  | " );
-		sb.append("h " + h + "  | " );
-		sb.append("offset " + offset + "  | " );
-		sb.append("scansize " + scansize + "  | " );
-		System.out.println( sb );
-		*/
-		
-        BufferedImage im = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);  // create blank frame
-        im.setRGB(startX, startY, w, h, rgbArray, offset, scansize);  // copy pixels across 
-
-        processImage( im );
-        
-        //im.setRGB(startX, startY, w, h, rgbArray, offset, scansize);
-        image.set( processedImage );
-        repaint();
-        
-        //System.out.printf( "TARGET: (%s,%s)\n", tgt_x, tgt_y );
-    }
+		if( frameCount == 0 )
+		{
+	        BufferedImage im = new BufferedImage(w, h, BufferedImage.TYPE_INT_RGB);  // create blank frame
+	        im.setRGB(startX, startY, w, h, rgbArray, offset, scansize);  // copy pixels across 
 	
-	public boolean isTargetFound()
-	{
-		return true;
-	}
+	        processImage( im );
+	        
+	        atomImage.set( processedImage );
+	        repaint();
+		}
+        
+		frameCount = (frameCount+1) % nFrameSkip;
+    }
+    
+	
+	
+    ///////////////////////////////////////
+    //////////// KAS PROC /////////////////
+    ///////////////////////////////////////
+    
+    private static BufferedImage rawImage;
+    private static String imgpath = "./data";
+    private static int WIDTH = 320;
+    private static int HEIGHT = 240;
+    private static double TGT_R = 115.0 / 255.0;
+    private static double TGT_G = 49.0 / 255.0;
+    private static double TGT_B = 75.0 / 255.0;
+    private static double DIST_THR = 0.07;
+    private static double CONV_THR = 0.1;
+    private static int CONV_R = 10;
+
+    // Results
+    private static double tgt_x;
+    private static double tgt_y;
+    private static double tgt_r;
+    private static BufferedImage processedImage;
+    private static boolean success;
+
+    // Temporary buffers
+    private static double[][] buf = new double[HEIGHT][WIDTH];
+    private static double[][] conv = new double[HEIGHT][WIDTH];
+    private static int count = 0;
+
+    private static void clearBuffer() {
+        for (int row = 0; row < HEIGHT; ++row) {
+            for (int col = 0; col < WIDTH; ++col) {
+                buf[row][col] = 0.0;
+            }
+        }
+    }
+
+    private static double sq(double x) {
+        return x * x;
+    }
+
+    public static BufferedImage getImageFromArray(double[][] pixels, int width, int height) {
+        int[] tmp = new int[3 * height * width];
+        BufferedImage image = new BufferedImage(width, height, BufferedImage.TYPE_BYTE_GRAY);
+
+        double max = 0.0;
+        for (int row = 0; row < height; ++row) {
+            for (int col = 0; col < width; ++col) {
+                max = Math.max(max, pixels[row][col]);
+            }
+        }
+        double scale = 1.0 / max;
+        for (int row = 0; row < height; ++row) {
+            for (int col = 0; col < width; ++col) {
+                image.setRGB(col, row, 0x00010101 * (int)(255.0 * scale * pixels[row][col]));
+            }
+        }
+        return image;
+    }
+
+    private static void computeDifference() {
+        for (int j = 0; j < HEIGHT; ++j) {
+            for (int i = 0; i < WIDTH; ++i) {
+                Color col = new Color(rawImage.getRGB(i, j));
+                double r = col.getRed()   / 255.0;
+                double g = col.getGreen() / 255.0;
+                double b = col.getBlue()  / 255.0;
+                double diff = Math.sqrt(sq(r - TGT_R) + sq(g - TGT_G) + sq(b - TGT_B)) / Math.sqrt(3.0);
+                if (diff < DIST_THR) {
+                    buf[j][i] = 1.0;
+                }
+            }
+        }
+    }
+
+    private static void convolve() {
+        double[][] mask = new double[CONV_R*2+1][CONV_R*2+1];
+        int c = 0;
+        for (int dj = -CONV_R; dj <= CONV_R; ++dj) {
+            for (int di = -CONV_R; di <= CONV_R; ++di) {
+                if (Math.sqrt(sq((double)dj) + sq((double)di)) <= CONV_R) {
+                    mask[dj + CONV_R][di + CONV_R] = 1.0;
+                    ++c;
+                }
+            }
+        }
+
+
+        for (int j = 0; j < HEIGHT; ++j) {
+            for (int i = 0; i < WIDTH; ++i) {
+                double sum = 0.0;
+                for (int dj = -CONV_R; dj <= CONV_R; ++dj) {
+                    for (int di = -CONV_R; di <= CONV_R; ++di) {
+                        int ii = Math.max(0, Math.min(WIDTH - 1, i + di));
+                        int jj = Math.max(0, Math.min(HEIGHT - 1, j + dj));
+                        sum += mask[dj + CONV_R][di + CONV_R] * buf[jj][ii];
+                    }
+                }
+
+                conv[j][i] = sum / (double)c;
+
+                if (conv[j][i] < CONV_THR) {
+                    conv[j][i] = 0.0;
+                }
+            }
+        }
+    }
+
+    private static void findTarget() {
+        // count = 0;
+        tgt_x = 0.0;
+        tgt_y = 0.0;
+        double tconv = 0.0;
+        for (int j = 0; j < HEIGHT; ++j) {
+            for (int i = 0; i < WIDTH; ++i) {
+                tgt_x += i * conv[j][i];
+                tgt_y += j * conv[j][i];
+                tconv += conv[j][i];
+            }
+        }
+        tgt_x /= tconv;
+        tgt_y /= tconv;
+
+
+        tgt_r = Math.max(1, 4 * Math.sqrt(tconv));
+        success = (tgt_r > 4);
+    }
+
+    private static void visualise(BufferedImage image) {
+
+        processedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
+
+        double maxconv = 0.0;
+        for (int j = 0; j < HEIGHT; ++j) {
+            for (int i = 0; i < WIDTH; ++i) {
+                maxconv = Math.max(maxconv, conv[j][i]);
+            }
+        }
+        for (int j = 0; j < HEIGHT; ++j) {
+            for (int i = 0; i < WIDTH; ++i) {
+                Color col = new Color(image.getRGB(i, j));
+                double r = col.getRed()   / 255.0;
+                double g = col.getGreen() / 255.0;
+                double b = col.getBlue()  / 255.0;
+                double gray = Math.min(1.0, 0.21 * r + 0.71 * g + 0.07 * b);
+                double val = conv[j][i] / maxconv;
+                int cc = Color.HSBtoRGB((float)val, (float)val, (float)gray);
+                processedImage.setRGB(i, j, cc);
+            }
+        }
+        // Graphics2D g = processedImage.createGraphics();
+        // g.setColor(Color.WHITE);
+        // g.fillOval(Math.floor(tgt_x), Math.floor(tgt_y), Math.round(tgt_r), Math.round(tgt_r));
+
+    }
+
+    private static void processImage(BufferedImage image) {
+    	rawImage = image;  // MJW
+    	
+        clearBuffer();
+        int height = image.getHeight();
+        int width = image.getWidth();
+        processedImage = new BufferedImage(width, height, BufferedImage.TYPE_INT_RGB);
+        count = 0;
+
+        computeDifference();
+        convolve();
+        findTarget();
+        visualise(image);
+    }
 }
