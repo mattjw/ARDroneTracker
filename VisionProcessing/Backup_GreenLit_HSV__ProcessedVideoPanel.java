@@ -39,7 +39,6 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         atomImage.set(noConnection);
         
         // Default RGB to HSV
-        /*
         float[] hsb = Color.RGBtoHSB(TARGET_RGB.getRed(), TARGET_RGB.getGreen(), TARGET_RGB.getBlue(), null );
         TGT_H = (double)hsb[0];
         TGT_S =  (double)hsb[1];
@@ -59,31 +58,6 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         TGT_H =  0.403;
         TGT_S =  0.683;
         TGT_V =  0.494;
-        */
-        TGT_R = 0.157 ; //10/255.0;
-        TGT_G = 0.494; //200/255.0;
-        TGT_B = 0.314; //40/255.0;
-        
-        
-        // cup
-        // r  0.220   g  0.494    b 0.345
-        TGT_R = 0.314 ; //10/255.0;
-        TGT_G = 0.494; //200/255.0;
-        TGT_B = 0.471; //40/255.0;
-        DIST_THR = 0.12;
-        CONV_THR = 0.5;
-        
-        
-
-        
-        /*
-  		// paddle
-        TGT_R = 0.188 ; //10/255.0;
-        TGT_G = 0.494; //200/255.0;
-        TGT_B = 0.360; //40/255.0;
-        DIST_THR = 0.06;
-        CONV_THR = 0.5;
-        */
     }
 
     public void setDrone(ARDrone drone)
@@ -163,13 +137,6 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     //////////// WRAPPED ON KAS ////////////
     ////////////////////////////////////////
 	
-    public void setParams( float TGT_R, float TGT_G, float TGT_B, float DIST_THR )
-    {
-    	this.TGT_R = TGT_R;
-    	this.TGT_G = TGT_G;
-    	this.TGT_B = TGT_B;
-    	this.DIST_THR = DIST_THR;
-    }
     
     private int frameCount = 0;
     private int nFrameSkip = 4;  
@@ -229,18 +196,16 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     
     private final Color TARGET_RGB = new Color(120, 64, 128);
     
-    /*
     private double TGT_H;
     private double TGT_S;
     private double TGT_V;
-    */
     
-    private double TGT_R;// = 120/225.0; //115.0 / 255.0;
-    private double TGT_G;// =  64/225.0; //49.0 / 255.0;
-    private double TGT_B;// = 128/225.0; // 75.0 / 255.0;
-    private double DIST_THR;// = 0.10; //.12 //11; // 0.07;   colour thresh
+    //private static double TGT_R = 120/225.0; //115.0 / 255.0;
+    //private static double TGT_G =  64/225.0; //49.0 / 255.0;
+    //private static double TGT_B = 128/225.0; // 75.0 / 255.0;
     
-    private double CONV_THR;// = 0.5; //0.1   // false pos thresh
+    private double DIST_THR = 0.12; //11; // 0.07;   colour thresh
+    private double CONV_THR = 0.6; //0.1   // false pos thresh
     private int CONV_R = 10;
 
     // Results
@@ -290,12 +255,10 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         for (int j = 0; j < HEIGHT; ++j) {
             for (int i = 0; i < WIDTH; ++i) {
                 Color col = new Color(rawImage.getRGB(i, j));
+                //double r = col.getRed()   / 255.0;
+                //double g = col.getGreen() / 255.0;
+                //double b = col.getBlue()  / 255.0;
                 
-                double r = col.getRed()   / 255.0;
-                double g = col.getGreen() / 255.0;
-                double b = col.getBlue()  / 255.0;
-                
-                /*
                 int r = col.getRed();
                 int g = col.getGreen();
                 int b = col.getBlue();
@@ -304,10 +267,10 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
                 double h = hsv[0];
                 double s = hsv[1];
                 double v = hsv[2];
-                */
                 		
-                double diff = Math.sqrt(sq(r - TGT_R) + sq(g - TGT_G) + sq(b - TGT_B)) / Math.sqrt(3.0);
-                //double diff = Math.sqrt(sq(h - TGT_H) * 0.7 + sq(s - TGT_S) * 0.2 + sq(v - TGT_V) * 0.1);
+                //double diff = Math.sqrt(sq(r - TGT_R) + sq(g - TGT_G) + sq(b - TGT_B)) / Math.sqrt(3.0);
+//                double diff = Math.sqrt(sq(h - TGT_H) * 0.4 + sq(s - TGT_S) * 0.2 + sq(v - TGT_V) * 0.4);
+                double diff = Math.sqrt(sq(h - TGT_H) * 0.7 + sq(s - TGT_S) * 0.2 + sq(v - TGT_V) * 0.1);
                 
                 if ((diff < DIST_THR)  ) {
                     buf[j][i] = 1.0;
@@ -316,15 +279,12 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
                 // debug
                 if( (i==160) && (j==120) )
                 {
-                	System.out.println( String.format("r  %.3f   g  %.3f    b %.3f  ", r, g, b) );
-                	System.out.println( String.format("tgtr  %.3f   tgtg  %.3f    tgtb %.3f  %f", TGT_R, TGT_G, TGT_B, DIST_THR) );
-                	//System.out.println( String.format("h  %.3f   s  %.3f    v %.3f  ", h, s, v) );
-                	//System.out.println( String.format(" j < height %s  ,   i < width %s ", HEIGHT, WIDTH) );
-                	//System.out.println( col );
+                	System.out.println( String.format("h  %.3f   s  %.3f    v %.3f  ", h, s, v) );
+                	System.out.println( String.format(" j < height %s  ,   i < width %s ", HEIGHT, WIDTH) );
                 }
                 
                 // retain only central cam circle cone
-                if( Math.sqrt( sq(i-160) + sq(j-120) ) > 160 )   // bigger then 160 px from centre culled
+                if( Math.sqrt( sq(i-160) + sq(j-120) ) > 120 )
                 	buf[j][i] = 0.0;  // 0 means NOT interesting for deteciton
             }
         }

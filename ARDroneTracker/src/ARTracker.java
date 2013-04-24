@@ -11,6 +11,7 @@ import java.util.concurrent.atomic.AtomicBoolean;
 import javax.swing.AbstractAction;
 import javax.swing.ImageIcon;
 import javax.swing.JButton;
+import javax.swing.JTextField;
 
 import org.apache.log4j.BasicConfigurator;
 import org.apache.log4j.Level;
@@ -55,7 +56,7 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     // ARDrone stuff
     private ARDrone drone;
     private final VideoPanel droneVideoStreamPanel = new VideoPanel();
-    private final ProcessedVideoPanel processedVideoStreamPanel = new ProcessedVideoPanel();
+    private final ProcessedVideoPanel processedVideoStreamPanel = new ProcessedVideoPanel2(); // KAS
     private final DroneConfig droneConfigWindow;
     
     /**
@@ -65,11 +66,12 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     {
     	BasicConfigurator.configure(); //~mjw
     	
-        setAlwaysOnTop(true);
+        setAlwaysOnTop(false);
         initComponents();
         droneConfigWindow = new DroneConfig(this, true);
         //initController(); //MJW
         initDrone();
+        setSize( 800, 800 );
     }
     
     public ARDrone getARDrone() 
@@ -91,6 +93,7 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
         catch(UnknownHostException ex)
         {
             Logger.getLogger(ARTracker.class.getName()).error("Error creating drone object!", ex);
+            System.err.println( "x1" + ex );
             return;
         }
         droneConfigWindow.setDrone(drone);
@@ -130,6 +133,7 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
                     catch(IOException e)
                     {
                         drone.changeToErrorState(e);
+                        System.err.println( "x2" + e );
                     }
                 }
             });
@@ -164,6 +168,23 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
             	while(running.get())  // "running" indicates ARDrone is running. while "running" the drone may move from "flying" or not 
                 {
             		//
+            		// Update params
+            		try
+            		{
+	            		float r = Float.valueOf( jtR.getText() );
+	            		float g = Float.valueOf( jtG.getText() );
+	            		float b = Float.valueOf( jtB.getText() );
+	            		float distThresh = Float.valueOf( jtDistThresh.getText() );
+	            		
+	            		processedVideoStreamPanel.setParams( r, g, b, distThresh );
+            		}
+            		catch( NumberFormatException ex )
+            		{
+            			System.err.println( ex );
+            			// number format exception while someone is entering values
+            		}
+            		
+            		//
             		// Update control
             		// first thing to do: handle control params
             		// note: of there are any PIDs here, this WILL cause them to update their states
@@ -174,10 +195,18 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
                     
                     if( processedVideoStreamPanel.isTargetFound() )
                     {
+                    	// motion control
                     	left_right_tilt = 0f;
-                        front_back_tilt = getFrontBackTilt();
+                        front_back_tilt = getFrontBackTilt();  // do not do front back
                         vertical_speed = getVerticalSpeed();
                         angular_speed = getAngularSpeed();
+                        
+                        // led control
+                        drone.playLED(ARDrone.LED.GREEN, 100000, 10);
+                    }
+                    else
+                    {
+                    	drone.playLED(ARDrone.LED.RED, 100000, 10);
                     }
                     
                     //
@@ -185,13 +214,12 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
             		if( debugLabel != null )
             		{
             			String msg = "";
-            			msg += "running.get()\n";
-            			msg += String.format( "angular speed:  %.3f \n", angular_speed );
-            			msg += String.format( "vertical speed: %.3f \n", vertical_speed );
+            			msg += String.format( "angular speed:  %.3f \t\t", angular_speed );
+            			msg += String.format( "vertical speed: %.3f \t\t", vertical_speed );
             			msg += String.format( "f/b tilt:       %.3f \n", front_back_tilt );
-            			msg += String.format( "target:         %.3f, %.3f \n", processedVideoStreamPanel.getTargetX(), processedVideoStreamPanel.getTargetY() );
+            			msg += String.format( "target:         %.3f, %.3f \t", processedVideoStreamPanel.getTargetX(), processedVideoStreamPanel.getTargetY() );
             			msg += String.format( "targ extent:    %.3f \n", processedVideoStreamPanel.getTargetExtent() );
-            			msg += String.format( "targ is found:  %s \n", processedVideoStreamPanel.isTargetFound() );
+            			msg += String.format( "targ is found:  %s", processedVideoStreamPanel.isTargetFound() );
             			debugLabel.setText( msg );
             		}
             		
@@ -226,6 +254,7 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
 	            	catch( IOException ex )
 	            	{
 	            		System.err.println( "Problem with drone.takeOff or drone.land" );
+	            		System.err.println( "x3" + ex );
 	            	}
             		
             		//
@@ -257,7 +286,9 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
                     {
                         Thread.sleep(READ_UPDATE_DELAY_MS);
                     }
-                    catch(InterruptedException e) {}
+                    catch(InterruptedException e) {
+                    	System.err.println( "x4" + e );
+                    }
                 
                 } // end whole loop
             }
@@ -268,6 +299,7 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
         }
         catch(Throwable e)
         {
+        	System.err.println( "y1" + e );
             e.printStackTrace();
         }
         resetStatus();
@@ -425,6 +457,8 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     private javax.swing.JPanel videoPanel;
     private javax.swing.JTextArea debugLabel;
     
+    private javax.swing.JTextField jtR, jtG, jtB, jtDistThresh;
+    
     private void initComponents() {
     	
     	//
@@ -447,10 +481,10 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
         setLayout( new java.awt.BorderLayout() );
         
         javax.swing.JPanel debugPanel = new javax.swing.JPanel();  // panel above videos for debug info
-        debugPanel.setLayout( new java.awt.GridLayout(1,1) );
+        debugPanel.setLayout( new java.awt.GridLayout(1,4) );
         
         javax.swing.JPanel videosSuperPanel = new javax.swing.JPanel();  // container for multiple video streams
-        videosSuperPanel.setLayout( new java.awt.GridLayout(0,1) );
+        videosSuperPanel.setLayout( new java.awt.GridLayout(1,0) );
         
         javax.swing.JPanel guiControlsPanel = new javax.swing.JPanel();  // panel below the videos for control/interaction w/ drone
         
@@ -489,7 +523,21 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
         //debugLabel.setHorizontalAlignment( javax.swing.JTextArea.LEFT );
         //debugLabel.setVerticalAlignment( javax.swing.JTextArea.TOP );
         //debugLabel.setSize(0, 200);
+        
+        
+        // Set parameters
+        jtR = new JTextField("0.400");
+        jtG = new JTextField("1.85");
+        jtB = new JTextField("0.7");
+        jtDistThresh = new JTextField("0.48");
+        
         debugPanel.add( debugLabel );
+        
+        debugPanel.add( jtR );
+        debugPanel.add( jtG );
+        debugPanel.add( jtB );
+        debugPanel.add( jtDistThresh );
+        
         
         pack();
     }
@@ -513,7 +561,7 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     	float speed = (float)(delta / MIDDLE);
     	speed = speed*1.0f;
     	
-    	float MAX_SPEED = 0.1f;
+    	float MAX_SPEED = 0.3f;
     	if( speed > MAX_SPEED )
     		speed = MAX_SPEED;
     	
@@ -529,12 +577,15 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     
     private float getAngularSpeed()
     {
+    	/*
     	double targetX = processedVideoStreamPanel.getTargetX();
     	double actualDelta = targetX - 160;
+    	
     	
     	// error = the delta between center of screen and target x position
     	// target error = 0
     	double targetDelta = 0;
+    	
     	
     	double control = pidAngularSpeed.control( actualDelta, targetDelta, 0 );
     	
@@ -543,33 +594,66 @@ public class ARTracker extends javax.swing.JFrame implements DroneStatusChangeLi
     	//System.out.println( "act control: " + control );
     	
     	return (float)control;
+    	*/
     	
     	// negative return => negative angular speed => a negative value makes it spin left
     	
-    	/*
+    	
     	double targetX = processedVideoStreamPanel.getTargetX();
     	double delta = targetX - 160;
     	
     	float speed = (float)(delta / 160);
-    	speed = speed*1.5f;
+    	speed = speed*1f;
     	
-    	if( speed > 1 )
-    		speed = 1;
+    	float max = 0.5f; 
     	
-    	if( speed < -1 )
-    		speed = -1;
+    	if( speed > max )
+    		speed = max;
+    	
+    	if( speed < -max )
+    		speed = -max;
     	
     	return speed;
-    	*/
+    	
     }
     
     private float getFrontBackTilt()
     {
     	double actualExtent = processedVideoStreamPanel.getTargetExtent();
-    	double targetExtent = 100;
+    	double targetExtent = 100;  // with paddle = 100  // with cup = 40
+    	
+    	double tolerance = 30;
+    	
+    	double control;
+    	double stepControl = 0.12;
+    	
+    	if( actualExtent < (targetExtent-(tolerance)) )
+    	{
+    		// move drone away
+    		control = -stepControl;
+    	}
+    	else if( actualExtent > (targetExtent+(tolerance)) )
+    	{
+    		// move drone closer
+    		control = +stepControl;
+    	}
+    	else
+    	{
+    		control = 0;
+    	}
+    	
+    	return (float)control;
+    	
+    	/*
+    	// 
+    	 
+    	double actualExtent = processedVideoStreamPanel.getTargetExtent();
+    	double targetExtent = 35;  // with paddle = 100
     	double control = pidFrontBackTilt.control( actualExtent, targetExtent, 0 );
     	control = control;
     	return (float)control;
+    	*/
+    	
     	/*
     	// return value (understanding front back tilt...):
     	// A negative value makes the drone lower its nose, thus flying frontward.

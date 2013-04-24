@@ -22,14 +22,14 @@ import java.util.concurrent.atomic.AtomicReference;
  * @author normenhansen
  */
 @SuppressWarnings("serial")
-public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVideoListener
+public class ProcessedVideoPanel2 extends ProcessedVideoPanel implements DroneVideoListener
 {
     private AtomicReference<BufferedImage> atomImage          = new AtomicReference<BufferedImage>();  // used for output when displaying the video stream. this variable is the frame that'll be displayed 
     private AtomicBoolean                  preserveAspect = new AtomicBoolean(true);  
     private BufferedImage                  noConnection   = new BufferedImage(320, 240, BufferedImage.TYPE_INT_RGB);
 
     /** Creates new form VideoPanel */
-    public ProcessedVideoPanel()
+    public ProcessedVideoPanel2()
     {
         initComponents();
         Graphics2D g2d = (Graphics2D) noConnection.getGraphics();
@@ -64,26 +64,16 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         TGT_G = 0.494; //200/255.0;
         TGT_B = 0.314; //40/255.0;
         
-        
-        // cup
         // r  0.220   g  0.494    b 0.345
-        TGT_R = 0.314 ; //10/255.0;
-        TGT_G = 0.494; //200/255.0;
-        TGT_B = 0.471; //40/255.0;
-        DIST_THR = 0.12;
-        CONV_THR = 0.5;
-        
-        
-
-        
-        /*
-  		// paddle
+//        TGT_R = 0.314 ; //10/255.0;
+//        TGT_G = 0.494; //200/255.0;
+//        TGT_B = 0.471; //40/255.0;
+  // paddle
         TGT_R = 0.188 ; //10/255.0;
         TGT_G = 0.494; //200/255.0;
         TGT_B = 0.360; //40/255.0;
         DIST_THR = 0.06;
         CONV_THR = 0.5;
-        */
     }
 
     public void setDrone(ARDrone drone)
@@ -172,7 +162,7 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     }
     
     private int frameCount = 0;
-    private int nFrameSkip = 4;  
+    private int nFrameSkip = 3;  
       // frameReceived will NOT do processing unless frameCount==0;
       // nFrameSkip: skip `nFrameSkip` frames before re-processing
     
@@ -238,6 +228,7 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     private double TGT_R;// = 120/225.0; //115.0 / 255.0;
     private double TGT_G;// =  64/225.0; //49.0 / 255.0;
     private double TGT_B;// = 128/225.0; // 75.0 / 255.0;
+    
     private double DIST_THR;// = 0.10; //.12 //11; // 0.07;   colour thresh
     
     private double CONV_THR;// = 0.5; //0.1   // false pos thresh
@@ -306,18 +297,27 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
                 double v = hsv[2];
                 */
                 		
-                double diff = Math.sqrt(sq(r - TGT_R) + sq(g - TGT_G) + sq(b - TGT_B)) / Math.sqrt(3.0);
+                //double diff = Math.sqrt(sq(r - TGT_R) + sq(g - TGT_G) + sq(b - TGT_B)) / Math.sqrt(3.0);
                 //double diff = Math.sqrt(sq(h - TGT_H) * 0.7 + sq(s - TGT_S) * 0.2 + sq(v - TGT_V) * 0.1);
+                //double diff = Math.sqrt(sq(0.5 - r/g) + sq(1.3 - g/b));
+                //DIST_THR = 0.3;
                 
-                if ((diff < DIST_THR)  ) {
+                double br = (r + g + b) / 3.0;
+                r = r/br;
+                g = g/br;
+                b = b/br;
+                double diff = Math.sqrt(sq(r - TGT_R) + sq(g - TGT_G) + sq(b - TGT_B)) / Math.sqrt(3.0);
+                
+                if (diff < DIST_THR ) {
                     buf[j][i] = 1.0;
                 }
                 
                 // debug
                 if( (i==160) && (j==120) )
                 {
-                	System.out.println( String.format("r  %.3f   g  %.3f    b %.3f  ", r, g, b) );
+                	System.out.println( String.format("r  %.3f   g  %.3f    b %.3f  %f", r, g, b, DIST_THR) );
                 	System.out.println( String.format("tgtr  %.3f   tgtg  %.3f    tgtb %.3f  %f", TGT_R, TGT_G, TGT_B, DIST_THR) );
+                	//System.out.println( String.format("r / g   %.3f    g / b   %.3f", r/g, g/b));
                 	//System.out.println( String.format("h  %.3f   s  %.3f    v %.3f  ", h, s, v) );
                 	//System.out.println( String.format(" j < height %s  ,   i < width %s ", HEIGHT, WIDTH) );
                 	//System.out.println( col );

@@ -37,53 +37,6 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         g2d.setFont(f);
         g2d.drawString("No video connection", 40, 110);
         atomImage.set(noConnection);
-        
-        // Default RGB to HSV
-        /*
-        float[] hsb = Color.RGBtoHSB(TARGET_RGB.getRed(), TARGET_RGB.getGreen(), TARGET_RGB.getBlue(), null );
-        TGT_H = (double)hsb[0];
-        TGT_S =  (double)hsb[1];
-        TGT_V = (double)hsb[2];
-        
-        // pink target
-        TGT_H =  0.948;
-        TGT_S =  0.725;
-        TGT_V =  0.314;
-        
-        // green target
-        TGT_H =  0.365;
-        TGT_S =  0.55;
-        TGT_V =  0.262;
-        
-        // green lit target
-        TGT_H =  0.403;
-        TGT_S =  0.683;
-        TGT_V =  0.494;
-        */
-        TGT_R = 0.157 ; //10/255.0;
-        TGT_G = 0.494; //200/255.0;
-        TGT_B = 0.314; //40/255.0;
-        
-        
-        // cup
-        // r  0.220   g  0.494    b 0.345
-        TGT_R = 0.314 ; //10/255.0;
-        TGT_G = 0.494; //200/255.0;
-        TGT_B = 0.471; //40/255.0;
-        DIST_THR = 0.12;
-        CONV_THR = 0.5;
-        
-        
-
-        
-        /*
-  		// paddle
-        TGT_R = 0.188 ; //10/255.0;
-        TGT_G = 0.494; //200/255.0;
-        TGT_B = 0.360; //40/255.0;
-        DIST_THR = 0.06;
-        CONV_THR = 0.5;
-        */
     }
 
     public void setDrone(ARDrone drone)
@@ -163,13 +116,6 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     //////////// WRAPPED ON KAS ////////////
     ////////////////////////////////////////
 	
-    public void setParams( float TGT_R, float TGT_G, float TGT_B, float DIST_THR )
-    {
-    	this.TGT_R = TGT_R;
-    	this.TGT_G = TGT_G;
-    	this.TGT_B = TGT_B;
-    	this.DIST_THR = DIST_THR;
-    }
     
     private int frameCount = 0;
     private int nFrameSkip = 4;  
@@ -222,40 +168,30 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     //////////// KAS PROC /////////////////
     ///////////////////////////////////////
     
-    private BufferedImage rawImage;
-    private String imgpath = "./data";
-    private int WIDTH = 320;
-    private int HEIGHT = 240;
-    
-    private final Color TARGET_RGB = new Color(120, 64, 128);
-    
-    /*
-    private double TGT_H;
-    private double TGT_S;
-    private double TGT_V;
-    */
-    
-    private double TGT_R;// = 120/225.0; //115.0 / 255.0;
-    private double TGT_G;// =  64/225.0; //49.0 / 255.0;
-    private double TGT_B;// = 128/225.0; // 75.0 / 255.0;
-    private double DIST_THR;// = 0.10; //.12 //11; // 0.07;   colour thresh
-    
-    private double CONV_THR;// = 0.5; //0.1   // false pos thresh
-    private int CONV_R = 10;
+    private static BufferedImage rawImage;
+    private static String imgpath = "./data";
+    private static int WIDTH = 320;
+    private static int HEIGHT = 240;
+    private static double TGT_R = 115.0 / 255.0;
+    private static double TGT_G =  49.0 / 255.0;
+    private static double TGT_B = 75.0 / 255.0;
+    private static double DIST_THR = 0.07;   //colour thresh
+    private static double CONV_THR = 0.1   // false pos thresh
+    private static int CONV_R = 10;
 
     // Results
-    private double tgt_x;
-    private double tgt_y;
-    private double tgt_r;
-    private BufferedImage processedImage;
-    private boolean success;
+    private static double tgt_x;
+    private static double tgt_y;
+    private static double tgt_r;
+    private static BufferedImage processedImage;
+    private static boolean success;
 
     // Temporary buffers
-    private double[][] buf = new double[HEIGHT][WIDTH];
-    private double[][] conv = new double[HEIGHT][WIDTH];
-    private int count = 0;
+    private static double[][] buf = new double[HEIGHT][WIDTH];
+    private static double[][] conv = new double[HEIGHT][WIDTH];
+    private static int count = 0;
 
-    private void clearBuffer() {
+    private static void clearBuffer() {
         for (int row = 0; row < HEIGHT; ++row) {
             for (int col = 0; col < WIDTH; ++col) {
                 buf[row][col] = 0.0;
@@ -263,7 +199,7 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         }
     }
 
-    private double sq(double x) {
+    private static double sq(double x) {
         return x * x;
     }
 
@@ -286,51 +222,22 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         return image;
     }
 
-    private void computeDifference() {
+    private static void computeDifference() {
         for (int j = 0; j < HEIGHT; ++j) {
             for (int i = 0; i < WIDTH; ++i) {
                 Color col = new Color(rawImage.getRGB(i, j));
-                
                 double r = col.getRed()   / 255.0;
                 double g = col.getGreen() / 255.0;
                 double b = col.getBlue()  / 255.0;
-                
-                /*
-                int r = col.getRed();
-                int g = col.getGreen();
-                int b = col.getBlue();
-                
-                float[] hsv = Color.RGBtoHSB( r, g, b, null );
-                double h = hsv[0];
-                double s = hsv[1];
-                double v = hsv[2];
-                */
-                		
                 double diff = Math.sqrt(sq(r - TGT_R) + sq(g - TGT_G) + sq(b - TGT_B)) / Math.sqrt(3.0);
-                //double diff = Math.sqrt(sq(h - TGT_H) * 0.7 + sq(s - TGT_S) * 0.2 + sq(v - TGT_V) * 0.1);
-                
-                if ((diff < DIST_THR)  ) {
+                if (diff < DIST_THR) {
                     buf[j][i] = 1.0;
                 }
-                
-                // debug
-                if( (i==160) && (j==120) )
-                {
-                	System.out.println( String.format("r  %.3f   g  %.3f    b %.3f  ", r, g, b) );
-                	System.out.println( String.format("tgtr  %.3f   tgtg  %.3f    tgtb %.3f  %f", TGT_R, TGT_G, TGT_B, DIST_THR) );
-                	//System.out.println( String.format("h  %.3f   s  %.3f    v %.3f  ", h, s, v) );
-                	//System.out.println( String.format(" j < height %s  ,   i < width %s ", HEIGHT, WIDTH) );
-                	//System.out.println( col );
-                }
-                
-                // retain only central cam circle cone
-                if( Math.sqrt( sq(i-160) + sq(j-120) ) > 160 )   // bigger then 160 px from centre culled
-                	buf[j][i] = 0.0;  // 0 means NOT interesting for deteciton
             }
         }
     }
 
-    private void convolve() {
+    private static void convolve() {
         double[][] mask = new double[CONV_R*2+1][CONV_R*2+1];
         int c = 0;
         for (int dj = -CONV_R; dj <= CONV_R; ++dj) {
@@ -363,7 +270,7 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         }
     }
 
-    private void findTarget() {
+    private static void findTarget() {
         // count = 0;
         tgt_x = 0.0;
         tgt_y = 0.0;
@@ -379,11 +286,11 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         tgt_y /= tconv;
 
 
-        tgt_r = Math.max(1, 3 * Math.sqrt(tconv));
-        success = (tgt_r > 10);
+        tgt_r = Math.max(1, 4 * Math.sqrt(tconv));
+        success = (tgt_r > 4);
     }
 
-    private void visualise(BufferedImage image) {
+    private static void visualise(BufferedImage image) {
 
         processedImage = new BufferedImage(WIDTH, HEIGHT, BufferedImage.TYPE_INT_RGB);
 
@@ -403,11 +310,6 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
                 double val = conv[j][i] / maxconv;
                 int cc = Color.HSBtoRGB((float)val, (float)val, (float)gray);
                 processedImage.setRGB(i, j, cc);
-                
-                if( (i==160) && (j==120) )
-                {
-                	processedImage.setRGB(i, j, 0xFFFFFF );
-                }
             }
         }
 
@@ -417,7 +319,7 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
 
     }
 
-    private void processImage(BufferedImage image) {
+    private static void processImage(BufferedImage image) {
     	rawImage = image;  // MJW
     	
         clearBuffer();

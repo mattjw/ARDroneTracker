@@ -64,26 +64,16 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
         TGT_G = 0.494; //200/255.0;
         TGT_B = 0.314; //40/255.0;
         
-        
-        // cup
         // r  0.220   g  0.494    b 0.345
-        TGT_R = 0.314 ; //10/255.0;
-        TGT_G = 0.494; //200/255.0;
-        TGT_B = 0.471; //40/255.0;
-        DIST_THR = 0.12;
-        CONV_THR = 0.5;
-        
-        
-
-        
-        /*
-  		// paddle
+//        TGT_R = 0.314 ; //10/255.0;
+//        TGT_G = 0.494; //200/255.0;
+//        TGT_B = 0.471; //40/255.0;
+  // paddle
         TGT_R = 0.188 ; //10/255.0;
         TGT_G = 0.494; //200/255.0;
         TGT_B = 0.360; //40/255.0;
         DIST_THR = 0.06;
         CONV_THR = 0.5;
-        */
     }
 
     public void setDrone(ARDrone drone)
@@ -163,13 +153,6 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     //////////// WRAPPED ON KAS ////////////
     ////////////////////////////////////////
 	
-    public void setParams( float TGT_R, float TGT_G, float TGT_B, float DIST_THR )
-    {
-    	this.TGT_R = TGT_R;
-    	this.TGT_G = TGT_G;
-    	this.TGT_B = TGT_B;
-    	this.DIST_THR = DIST_THR;
-    }
     
     private int frameCount = 0;
     private int nFrameSkip = 4;  
@@ -238,8 +221,8 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
     private double TGT_R;// = 120/225.0; //115.0 / 255.0;
     private double TGT_G;// =  64/225.0; //49.0 / 255.0;
     private double TGT_B;// = 128/225.0; // 75.0 / 255.0;
-    private double DIST_THR;// = 0.10; //.12 //11; // 0.07;   colour thresh
     
+    private double DIST_THR;// = 0.10; //.12 //11; // 0.07;   colour thresh
     private double CONV_THR;// = 0.5; //0.1   // false pos thresh
     private int CONV_R = 10;
 
@@ -317,7 +300,6 @@ public class ProcessedVideoPanel extends javax.swing.JPanel implements DroneVide
                 if( (i==160) && (j==120) )
                 {
                 	System.out.println( String.format("r  %.3f   g  %.3f    b %.3f  ", r, g, b) );
-                	System.out.println( String.format("tgtr  %.3f   tgtg  %.3f    tgtb %.3f  %f", TGT_R, TGT_G, TGT_B, DIST_THR) );
                 	//System.out.println( String.format("h  %.3f   s  %.3f    v %.3f  ", h, s, v) );
                 	//System.out.println( String.format(" j < height %s  ,   i < width %s ", HEIGHT, WIDTH) );
                 	//System.out.println( col );
